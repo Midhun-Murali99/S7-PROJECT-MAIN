@@ -1,4 +1,5 @@
 import json
+import sys
 from pathlib import Path
 
 import torch
@@ -8,10 +9,12 @@ from torch.utils.data import DataLoader
 from torchvision import transforms
 from PIL import Image
 
-from models.resnet50_classifier import TomatoResNet50
+PROJECT_ROOT = Path(__file__).resolve().parents[2]
+if str(PROJECT_ROOT) not in sys.path:
+    sys.path.insert(0, str(PROJECT_ROOT))
 
+from src.classification.resnet50_classifier import TomatoResNet50
 
-PROJECT_ROOT = Path(__file__).resolve().parents[1]
 DATASET_PATH = PROJECT_ROOT / "dataset" / "tomato_yolo_dataset"
 IMAGE_TRAIN = DATASET_PATH / "images" / "train"
 IMAGE_VAL = DATASET_PATH / "images" / "val"
@@ -33,7 +36,6 @@ CLASS_NAMES = {
 NUM_CLASSES = len(CLASS_NAMES)
 
 IMAGE_SIZE = 224
-
 MEAN = [0.485, 0.456, 0.406]
 STD = [0.229, 0.224, 0.225]
 
@@ -57,6 +59,7 @@ def read_yolo_label(label_path: Path):
                 continue
             try:
                 class_id = int(float(vals[0]))
+                _, _, _, _ = map(float, vals[1:])
                 x_center, y_center, width, height = map(float, vals[1:])
                 annotations.append({
                     "class_id": class_id,
@@ -72,8 +75,6 @@ def read_yolo_label(label_path: Path):
 
 class TomatoClassificationDataset(torch.utils.data.Dataset):
     def __init__(self, image_dir: Path, label_dir: Path, transform=None):
-        self.image_dir = image_dir
-        self.label_dir = label_dir
         self.transform = transform
         self.samples = []
 
@@ -111,7 +112,7 @@ transform_eval = transforms.Compose([
 ])
 
 
-def make_loaders(batch_size=16, num_workers=2):
+def make_loaders(batch_size=32, num_workers=4):
     train_ds = TomatoClassificationDataset(IMAGE_TRAIN, LABEL_TRAIN, transform=transform_train)
     val_ds = TomatoClassificationDataset(IMAGE_VAL, LABEL_VAL, transform=transform_eval)
 
@@ -125,21 +126,19 @@ def train():
     model = TomatoResNet50(num_classes=NUM_CLASSES, pretrained=False).to(device)
     criterion = nn.CrossEntropyLoss()
     optimizer = optim.AdamW(model.parameters(), lr=1e-4, weight_decay=1e-4)
-    scheduler = optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=10)
+    scheduler = optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=8)
 
-    train_loader, val_loader = make_loaders(batch_size=16)
-
+    train_loader, val_loader = make_loaders(batch_size=32)
     results = {"train_loss": [], "val_loss": [], "val_acc": []}
     best_val_loss = float("inf")
     best_state = None
 
-    for epoch in range(1, 11):
+    for epoch in range(1, 9):
         model.train()
         total_loss = 0.0
         for images, labels in train_loader:
             images = images.to(device)
             labels = labels.to(device)
-
             optimizer.zero_grad()
             outputs = model(images)
             loss = criterion(outputs, labels)
