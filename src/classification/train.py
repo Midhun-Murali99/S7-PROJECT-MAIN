@@ -177,10 +177,13 @@ def train():
             best_val_loss = val_loss
             best_state = {k: v.cpu().clone() for k, v in model.state_dict().items()}
 
-    if best_state is not None:
-        torch.save(best_state, PROJECT_ROOT / "results" / "resnet50_best.pt")
+    results_dir = PROJECT_ROOT / "results"
+    results_dir.mkdir(parents=True, exist_ok=True)
 
-    with open(PROJECT_ROOT / "results" / "resnet50_history.json", "w") as f:
+    if best_state is not None:
+        torch.save(best_state, results_dir / "resnet50_best.pt")
+
+    with open(results_dir / "resnet50_history.json", "w") as f:
         json.dump(results, f, indent=2)
 
     print("Training complete.")

@@ -1,379 +1,348 @@
-# Quick Start Guide - Tomato Disease Detection
+# Quick Start Guide - Tomato Disease Classification
 
-## 📋 Overview
+## 1. What this project does
 
-This project implements **YOLOv8-style Object Detection** to automatically detect and classify 10 tomato diseases in agricultural images.
+This project uses a convolutional neural network (CNN) to classify a tomato
+leaf image into one of 10 classes:
 
-**What the model does:**
-- Takes an image as input
-- Finds all disease regions (bounding boxes)
-- Classifies each region as one of 9 diseases or healthy
-- Outputs: `[x, y, width, height, class, confidence]`
+1. Bacterial spot
+2. Early blight
+3. Late blight
+4. Leaf Mold
+5. Septoria leaf spot
+6. Spider mites
+7. Target Spot
+8. Tomato Yellow Leaf Curl Virus
+9. Tomato mosaic virus
+10. Healthy
 
----
+The current primary workflow is **image classification with a ResNet-50 CNN**.
+The model receives one complete image and returns one class prediction. It does
+not currently perform object detection, draw predicted bounding boxes, or
+calculate detection mAP.
 
-## 🚀 Quick Start (5 Steps)
+The dataset keeps labels in YOLO format because the original annotations
+contain bounding boxes. In the current classification pipeline, the first
+annotation in each non-empty label file supplies the image class. The bounding
+box coordinates are validated and retained as metadata, but they are not
+cropped or used as detection targets during CNN training.
 
-### Step 1: Setup Environment (5 min)
-```bash
-# Open PowerShell/Terminal in project root
-cd m:\S7-PROJECT-MAIN
+## 2. Repository layout
 
-# Create virtual environment
-python -m venv venv
-
-# Activate environment
-venv\Scripts\activate  # Windows
-# or: source venv/bin/activate  # Linux/Mac
-
-# Install dependencies
-pip install -r requirements_updated.txt
+```text
+S7 PROJECT MAIN/
+|-- dataset/
+|   `-- tomato_yolo_dataset/
+|       |-- images/
+|       |   |-- train/
+|       |   `-- val/
+|       `-- labels/
+|           |-- train/
+|           `-- val/
+|-- src/
+|   |-- preprocessing/
+|   |   `-- preprocess.py
+|   |-- classification/
+|   |   `-- resnet50_classifier.py
+|   |-- infer.py
+|   `-- classification/train.py
+|-- notebooks/
+|   `-- data_exploration.ipynb
+|-- results/
+|-- requirements.txt
+`-- QUICK_START_GUIDE.md
 ```
 
-### Step 2: Explore Data (10 min)
-```bash
-# See what we're working with
-cd notebooks
-jupyter notebook data_exploration.ipynb
-# Run all cells (Shift+Enter)
+## 3. Environment setup
+
+Run these commands from the repository root in PowerShell:
+
+```powershell
+cd "S:\S7 PROJECT MAIN"
+
+python -m venv .venv
+.venv\Scripts\Activate.ps1
+
+python -m pip install --upgrade pip
+python -m pip install -r requirements.txt
 ```
 
-**What you'll see:**
-- 800 training images, 200 validation images
-- 10 classes: 9 diseases + healthy
-- Visualizations of images and bounding boxes
-- Dataset statistics
+If PowerShell blocks activation, run the commands with the virtual
+environment's interpreter directly:
 
-### Step 3: Validate Preprocessing (2 min)
-```bash
-cd ../src/preprocessing
-python preprocess_complete.py
+```powershell
+.venv\Scripts\python.exe -m pip install -r requirements.txt
 ```
 
-**Expected output:**
-```
-✓ Dataset structure validated!
-📊 Class Distribution:
-  0 Bacterial spot        : 120 ( 12.6%)
-  1 Early blight          : 150 ( 15.8%)
-  ...
-  9 Healthy               : 450 ( 47.4%)
-✓ Preprocessing complete! Ready to train.
-```
+The dependencies are:
 
-### Step 4: Train Model (2-4 hours on GPU)
-```bash
-cd ../
-python train_complete.py
-```
+- PyTorch and torchvision for the CNN, tensors, training, and inference
+- Pillow for image loading
+- NumPy for numerical utilities
+- pandas and Matplotlib for notebook analysis and visualizations
 
-**What happens:**
-- Loads training/validation data
-- Creates model with 5.3M parameters
-- Training loop: 100 epochs max
-- Saves best model to `results/checkpoints/best.pt`
-- Early stopping if no improvement
+CUDA is optional. PyTorch uses the GPU when CUDA is available; otherwise the
+scripts fall back to the CPU.
 
-**Training output:**
-```
-Epoch 1/100
-Train Loss: 4.2531
-Val Loss: 3.8214
-✓ Best model saved: results/checkpoints/best.pt
+## 4. Dataset format
 
-Epoch 2/100
-Train Loss: 3.1245
-Val Loss: 2.9834
+The expected directory structure is:
+
+```text
+dataset/tomato_yolo_dataset/
+|-- images/
+|   |-- train/*.jpg
+|   `-- val/*.jpg
+`-- labels/
+    |-- train/*.txt
+    `-- val/*.txt
 ```
 
-### Step 5: Evaluate Model (5 min)
-```bash
-python evaluate_complete.py
+Every image should have a label file with the same filename stem:
+
+```text
+images/train/TMBS_image (1).jpg
+labels/train/TMBS_image (1).txt
 ```
 
-**Output:**
-```
-mAP@0.5: 62.45%
+Each label line follows the YOLO format:
 
-Per-Class mAP:
-  0 Bacterial spot        → 65.2%
-  1 Early blight          → 58.3%
-  ...
-  9 Healthy               → 95.1%
-
-✓ Results saved: results/evaluation_results.json
+```text
+class_id x_center y_center width height
 ```
 
----
+Coordinates are normalized to the range 0.0 to 1.0. For example:
 
-## 📚 Documentation Files
-
-Read these for detailed explanations:
-
-| File | Purpose | Reading Time |
-|------|---------|--------------|
-| `COMPLETE_CODE_GUIDE.md` | Deep dive into every component | 45 min |
-| `MODEL_ARCHITECTURE_GUIDE.md` | Detailed model explanation | 30 min |
-| `DATA_EXPLORATION_EXPLAINED.md` | Notebook cell-by-cell explanation | 20 min |
-
----
-
-## 🔧 Project Files
-
-**New/Updated Files (Ready to Use):**
-- ✅ `src/preprocessing/preprocess_complete.py` - Data loading & augmentation
-- ✅ `src/models/yolov8_detector.py` - Neural network architecture
-- ✅ `src/train_complete.py` - Training script
-- ✅ `src/evaluate_complete.py` - Evaluation and metrics
-- ✅ `requirements_updated.txt` - Python dependencies
-- ✅ `COMPLETE_CODE_GUIDE.md` - Comprehensive documentation
-- ✅ `MODEL_ARCHITECTURE_GUIDE.md` - Architecture details
-- ✅ `DATA_EXPLORATION_EXPLAINED.md` - Data analysis guide
-
-**Old/Empty Files (Can be ignored):**
-- ⚠️ `src/train.py` - (empty, use train_complete.py)
-- ⚠️ `src/evaluate.py` - (empty, use evaluate_complete.py)
-- ⚠️ `src/preprocessing/preprocess.py` - (incomplete, use preprocess_complete.py)
-- ⚠️ `src/models/spatial_encoder.py` - (empty, replaced by yolov8_detector.py)
-- ⚠️ `src/models/spatiotemporal_transformer.py` - (empty, replaced by yolov8_detector.py)
-
----
-
-## 🏗️ Architecture Overview
-
-**Model Structure:**
-```
-Input Image (480×480)
-    ↓
-Backbone (CSPDarknet)
-├─ Extract features at multiple scales
-├─ Output: P3 (120×120), P4 (60×60), P5 (30×30)
-    ↓
-Neck (Feature Pyramid Network)
-├─ Combine multi-scale features
-├─ Output: P3_merged, P4_merged, P5_merged
-    ↓
-Detection Head
-├─ Predict bounding boxes + class for each scale
-├─ Output 1: (B, 15, 120, 120) - small objects
-├─ Output 2: (B, 15, 60, 60)   - medium objects
-├─ Output 3: (B, 15, 30, 30)   - large objects
-    ↓
-Post-processing (NMS, confidence filtering)
-    ↓
-Final Predictions: [x, y, w, h, class, confidence]
+```text
+0 0.523 0.421 0.634 0.721
 ```
 
-**Why this architecture?**
-- **Multi-scale**: Detects diseases of all sizes
-- **Efficient**: Real-time inference (150+ FPS on GPU)
-- **Accurate**: 50-70% mAP typical for this dataset
-- **Proven**: Based on YOLOv8 (state-of-the-art)
+The validation code checks that:
 
----
+- the dataset directories exist;
+- supported image files can be found;
+- every image has a matching label file;
+- images can be opened successfully;
+- each label line has exactly five values;
+- class IDs are between 0 and 9;
+- coordinates are numeric and within the normalized range; and
+- bounding-box width and height are greater than zero.
 
-## 📊 Expected Results
+Images without a valid, non-empty label are skipped by the classification
+dataset. If a label file contains multiple objects, the first object's
+`class_id` is used as the image label. This is an intentional classification
+simplification, not multi-object detection.
 
-### Training Progression
-```
-Epoch 1:   Train Loss: 4.25,  Val Loss: 3.82
-Epoch 10:  Train Loss: 1.56,  Val Loss: 1.48
-Epoch 50:  Train Loss: 0.34,  Val Loss: 0.41
-Epoch 100: Train Loss: 0.12,  Val Loss: 0.19
-```
+## 5. Explore and validate the data
 
-### Evaluation Metrics
-```
-Overall mAP: 60-65%
+Run the exploration notebook before training:
 
-Best Classes:
-- Healthy: 95% mAP (easy, just normal plants)
-- Early blight: 75% mAP (distinctive patterns)
-
-Harder Classes:
-- Septoria leaf spot: 45% mAP (subtle symptoms)
-- Spider mites: 40% mAP (very small, hard to distinguish)
+```powershell
+jupyter notebook notebooks\data_exploration.ipynb
 ```
 
-### Inference Speed
-- **GPU (NVIDIA)**: 150+ FPS (50 images/sec)
-- **CPU**: 2-5 FPS (slower but functional)
+The notebook checks the dataset structure, image/label matching, class
+balance, invalid or empty labels, image dimensions, train/validation
+distribution, and representative YOLO bounding boxes. It is an inspection
+tool only and does not train the CNN.
 
----
+Run the repository's dataset validator:
 
-## 🐛 Troubleshooting
-
-### Error: "Module not found: torch"
-```bash
-pip install -r requirements_updated.txt
+```powershell
+python src\preprocessing\preprocess.py
 ```
 
-### Error: "CUDA out of memory"
-```python
-# In train_complete.py, reduce batch size:
-CONFIG["training"]["batch_size"] = 8  # from 16
+The validator prints image counts, missing labels, corrupt images, invalid
+labels, empty labels, total annotated objects, and per-class counts. Fix
+validation errors before training.
+
+The normal single-image tensor shape is `(3, 224, 224)`. A batch passed to the
+CNN has shape `(batch_size, 3, 224, 224)`, and the classifier output has shape
+`(batch_size, 10)`.
+
+## 6. CNN preprocessing
+
+All classification models use RGB images resized to **224 x 224** pixels.
+Evaluation preprocessing is:
+
+1. Open the image with Pillow and convert it to RGB.
+2. Resize it to `(224, 224)`.
+3. Convert it to a PyTorch tensor.
+4. Normalize channels with ImageNet statistics:
+
+```text
+mean = [0.485, 0.456, 0.406]
+std  = [0.229, 0.224, 0.225]
 ```
 
-### Training loss not decreasing
-1. Check learning rate (try 0.001 or 0.1)
-2. Verify data loading (run Step 3 first)
-3. Print a batch to check shapes
+The ResNet-50 training path additionally applies training augmentation:
 
-### Low validation mAP after training
-1. More data helps (if you have more images, add them)
-2. More epochs (change to 200)
-3. Data augmentation (increase probability in preprocess_complete.py)
+- random horizontal flip (50% probability);
+- random rotation up to 15 degrees; and
+- random brightness and contrast changes.
 
----
+Augmentation is applied only to training images. Validation images use the
+deterministic resize and normalization pipeline.
 
-## 💡 Tips for Best Results
+## 7. Recommended training: ResNet-50 CNN
 
-### Data Quality
-- ✅ Clean data: Remove blurry/corrupted images
-- ✅ Balanced classes: Add more images of rare diseases
-- ✅ Variety: Include different lighting, plant angles, stages
-- ✅ Label accuracy: Double-check bounding boxes
+The recommended end-to-end training entry point is:
 
-### Training Strategy
-- ✅ Start small: Train with batch_size=8 for debugging
-- ✅ Monitor closely: Check loss curves after each epoch
-- ✅ Patience: Training properly takes 2-4 hours
-- ✅ Checkpointing: Save best model during training
-
-### Hyperparameter Tuning
-```python
-# If accuracy is low, try:
-1. Lower learning rate: 0.001 instead of 0.01
-2. Increase epochs: 200 instead of 100
-3. More augmentation: increase probability
-4. Larger batch: 32 instead of 16
+```powershell
+python src\classification\train.py
 ```
 
----
+The script:
 
-## 📈 Next Steps
+1. reads the training and validation image/label directories;
+2. creates the classification datasets and data loaders;
+3. builds a ResNet-50 CNN with its final layer changed to 10 outputs;
+4. uses cross-entropy loss;
+5. trains with AdamW (`learning_rate=1e-4`, `weight_decay=1e-4`);
+6. reduces the learning rate with cosine annealing; and
+7. records loss and validation accuracy for each epoch.
 
-**After successful training:**
+The default configuration is 8 epochs and a batch size of 32. The best model
+is selected using the lowest validation loss and saved as:
 
-1. **Deploy Model**
-   ```python
-   import torch
-   model = torch.load("results/checkpoints/best.pt")
-   # Use for inference on farm images
-   ```
-
-2. **Improve Performance**
-   - Collect more data
-   - Fine-tune hyperparameters
-   - Try YOLOv8 Medium (more accurate, slower)
-
-3. **Real-World Application**
-   - Integrate into mobile app
-   - Deploy on edge devices (Jetson Nano)
-   - Connect to farm monitoring system
-
----
-
-## 📞 Key Concepts Reference
-
-**Object Detection**: Predict bounding boxes + classes (vs classification which just gives class)
-
-**Multi-scale**: Detect objects at multiple size scales (small spots to large areas)
-
-**mAP**: Standard metric for object detection (0-100%, higher is better)
-
-**Early Stopping**: Stop training if validation loss doesn't improve for N epochs
-
-**Augmentation**: Apply random transforms (flip, rotate, brightness) to increase effective dataset size
-
-**Batch**: Process multiple images together (speeds up training)
-
-**Epoch**: One pass through entire training dataset
-
-**Gradient**: Direction to update weights to minimize loss
-
-**Backpropagation**: Algorithm to compute gradients (chain rule)
-
----
-
-## 📝 Dataset Classes
-
-1. **Bacterial spot** - Spots on leaves, can defoliate
-2. **Early blight** - Concentric rings, lower leaves first
-3. **Late blight** - Rapid wilting, white mold on undersides
-4. **Leaf Mold** - Dense fungal growth on leaf undersides
-5. **Septoria leaf spot** - Small circular spots with dark rings
-6. **Spider mites** - Tiny mites, cause yellowing and webbing
-7. **Target Spot** - Circular spots with concentric rings
-8. **Tomato Yellow Leaf Curl Virus** - Yellowing and curling of leaves
-9. **Tomato mosaic virus** - Mottling and malformation
-10. **Healthy** - Normal green plant tissue
-
----
-
-## 🎓 Learning Resources
-
-**Understand YOLOv8:**
-- YOLOv8 Paper: https://github.com/ultralytics/ultralytics
-- Object Detection Explained: https://www.youtube.com/watch?v=Cgxsv1riJhE
-
-**Deep Learning Basics:**
-- PyTorch Tutorials: https://pytorch.org/
-- Stanford CS231n: http://cs231n.stanford.edu/
-
-**Agricultural AI:**
-- Plant Disease Detection: PapersWithCode.com
-- Precision Farming: IEEE Xplore
-
----
-
-## ⚖️ License & Citation
-
-This project is based on:
-- YOLOv8 architecture (Ultralytics)
-- PyTorch framework (Meta AI)
-- Tomato disease detection dataset (your source)
-
-**Citation:**
-```
-@article{yolov8,
-  title={YOLOv8: A New State-of-the-Art Real-time Object Detector},
-  author={Jocher, Glenn},
-  journal={GitHub},
-  year={2023}
-}
+```text
+results/resnet50_best.pt
 ```
 
----
+Training history is saved as:
 
-## ✅ Checklist
+```text
+results/resnet50_history.json
+```
 
-Before training:
-- [ ] Created virtual environment
-- [ ] Installed requirements
-- [ ] Ran data exploration notebook
-- [ ] Validated preprocessing
-- [ ] Read documentation files
+The script selects CUDA automatically when available. To change the default
+batch size, epoch count, or optimizer settings, edit the configuration in
+`src\classification\train.py`.
 
-Training:
-- [ ] Started training script
-- [ ] Monitored loss curves
-- [ ] Model saved checkpoints
-- [ ] Training completed
+### How the ResNet-50 CNN works
 
-Evaluation:
-- [ ] Ran evaluation script
-- [ ] Checked mAP score (>50% is good)
-- [ ] Reviewed per-class metrics
-- [ ] Analyzed mistakes
+```text
+Input RGB image (3 x 224 x 224)
+              |
+              v
+       ResNet-50 convolutional backbone
+       - convolution filters learn visual features
+       - residual blocks improve deep-network training
+       - progressively captures edges, textures, and disease patterns
+              |
+              v
+       Global feature representation
+              |
+              v
+       Fully connected layer: 2048 features -> 10 classes
+              |
+              v
+       Class logits -> softmax probabilities
+```
 
----
+During training, cross-entropy compares the logits with the class label.
+Backpropagation computes gradients, and AdamW updates the CNN weights.
+Validation accuracy and validation loss measure generalization to images not
+used for weight updates.
 
-**Questions?** Refer to `COMPLETE_CODE_GUIDE.md` for detailed explanations.
+## 8. ResNet-50 inference
 
-**Need help?** Check specific documentation:
-- Architecture → `MODEL_ARCHITECTURE_GUIDE.md`
-- Data → `DATA_EXPLORATION_EXPLAINED.md`
-- Code → `COMPLETE_CODE_GUIDE.md`
+Run inference with the checkpoint produced by the ResNet-50 training script:
 
-Good luck with your tomato disease detection project! 🍅
+```powershell
+python src\infer.py `
+  --image "dataset\tomato_yolo_dataset\images\val\example.jpg" `
+  --model results\resnet50_best.pt `
+  --device cpu `
+  --topk 3
+```
+
+The output contains the top-k class names, class IDs, and probabilities.
+Probabilities are calculated by applying softmax to the 10 CNN logits.
+The inference script and training script both use the same `TomatoResNet50`
+architecture, so their checkpoint formats are compatible.
+
+## 10. Evaluation and metrics
+
+The active classifier is evaluated with:
+
+- validation loss, where lower is better;
+- top-1 accuracy, the percentage of images whose highest-probability class is
+  correct; and
+- optionally top-k accuracy when inspecting inference results.
+
+Classification accuracy is the appropriate primary metric for the current
+pipeline. Object-detection metrics such as IoU, mAP@0.5, and non-maximum
+suppression belong to the legacy YOLO-style detector files and do not describe
+the ResNet classifier's output.
+
+## 11. Common troubleshooting
+
+### `ModuleNotFoundError`
+
+Run commands from the repository root and activate the virtual environment:
+
+```powershell
+cd "S:\S7 PROJECT MAIN"
+.venv\Scripts\Activate.ps1
+```
+
+### Dataset structure is incomplete
+
+Confirm that all four directories exist:
+
+```text
+dataset\tomato_yolo_dataset\images\train
+dataset\tomato_yolo_dataset\images\val
+dataset\tomato_yolo_dataset\labels\train
+dataset\tomato_yolo_dataset\labels\val
+```
+
+### CUDA out of memory
+
+Reduce the batch size in the training script, for example from 32 to 16 or 8.
+The model can be trained on CPU, although it will be slower.
+
+### Training accuracy is high but validation accuracy is low
+
+- check for duplicate or near-duplicate images across splits;
+- inspect class balance with the validator;
+- confirm that image and label stems match;
+- review labels with multiple objects, since only the first class is used; and
+- collect more varied examples or adjust augmentation.
+
+### Checkpoint loading fails
+
+Use the ResNet-50 checkpoint produced by the active training script. Model
+weights from another architecture cannot be loaded directly.
+
+## 12. Important project limitations
+
+- The current primary model classifies one complete image; it does not localize
+  multiple diseases within one image.
+- YOLO bounding boxes are not cropped or passed to a detector during CNN
+  training.
+- When an image has multiple annotations, only the first annotation's class is
+  used.
+- Reported performance must be measured on this dataset and should not be
+  replaced with generic or assumed accuracy/mAP values.
+
+## 13. Useful files
+
+| File | Purpose |
+|---|---|
+| `src\preprocessing\preprocess.py` | Dataset paths, class names, label parsing, validation, and transforms |
+| `src\classification\train.py` | ResNet-50 CNN training script |
+| `src\classification\resnet50_classifier.py` | ResNet-50 model definition |
+| `src\infer.py` | ResNet-50 checkpoint inference |
+| `notebooks\data_exploration.ipynb` | Dataset exploration and visualization |
+
+## 14. Quick checklist
+
+- [ ] Create and activate the virtual environment.
+- [ ] Install `requirements.txt`.
+- [ ] Confirm the four dataset directories exist.
+- [ ] Run `python src\preprocessing\preprocess.py`.
+- [ ] Train with `python src\classification\train.py`.
+- [ ] Run inference with `python src\infer.py`.
+- [ ] Evaluate on the validation split and record measured metrics.
